@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleIdentifier</key>
+    <string>com.dabaipet.app</string>
+    <key>CFBundleExecutable</key>
+    <string>DabaiPet</string>
+    <key>CFBundleName</key>
+    <string>DabaiPet</string>
+    <key>CFBundleDisplayName</key>
+    <string>DabaiPet</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>0.1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>26.0</string>
+    <key>LSUIElement</key>
+    <true/>
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>用于在你开启语音输入时录制声音。</string>
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>用于在设备上将你的语音输入转为文字。</string>
+    <key>NSCameraUsageDescription</key>
+    <string>用于在石头剪刀布游戏中识别你的出拳手势。</string>
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>用于连接你在局域网中配置的 Ollama 服务。</string>
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsLocalNetworking</key>
+        <true/>
+    </dict>
+</dict>
+</plist>
