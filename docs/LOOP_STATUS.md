@@ -30,12 +30,12 @@
 ### Iteration 0.5：MVP 前置可行性探针（真机二元签收）
 | Spike | 名称 | 主责角色 | 状态 | IMPL 失败次数 | 真机签收 | 备注 / 基线数值 |
 | :--- | :--- | :---: | :---: | :---: | :---: | :--- |
-| S1 | 自签名跨重建 TCC/Keychain + `counterForEventType` 权限 | `DEV-H` (`codex 6.2 astra high`) | `FAIL` | 0 | 待补测 TCC/键盘 | A/B 签名 DR 相同、CDHash 不同。A 写入成功，B 禁交互读取返回 -25293；securityd 确认 CDHash 分区不匹配。已恢复 A 并删除条目。麦克风授权与真实按键待人工。 |
+| S1 | 自签名跨重建 TCC/Keychain + `counterForEventType` 权限 | `DEV-H` (`codex 6.2 astra high`) | `FAIL` | 0 | 钥匙串失败，TCC/计数通过 | A/B 签名 DR 相同、CDHash 不同。A 写入成功，B 禁交互读取返回 -25293；securityd 确认 CDHash 分区不匹配。两轮 A/B 均复现，临时条目已删除。人工允许麦克风后，B 仍为 authorized；两段 15 秒未见按键；随后独立签名进程 90 秒采样 AX=false、按键增量 1，已观察到无需辅助功能的正计数。 |
 | S2 | 透明 `ignoresMouseEvents` 穿透 + 拖拽 + `ChatPanel` 中文 IME | `DEV-H` (`codex 6.2 astra high`) | `IN_PROGRESS` | 0 | `PENDING` | 签名包已包含穿透、拖动和两种焦点策略的中文拼音实测入口。 |
 | S3 | 宽窗画布内滚动（单屏/多屏负坐标/`visibleFrame`） | `DEV-H` (`codex 6.2 astra high`) | `IN_PROGRESS` | 0 | `PENDING` | 内屏 257 次采样，2.208 秒，152 → 332 → 152 pt，采样包络全部可见。负坐标夹具四角通过，实机仅连接内屏。 |
 | S4 | 性能基线标定（空壳 / Canvas 30FPS / CALayer 呼吸） | `DEV-H` (`codex 6.2 astra high`) | `IN_PROGRESS` | 0 | `PENDING` | 默认呼吸对 WindowServer 增量 +10.84 个百分点；前后两次空窗夹测 +10.47，均超过 1.5。15 Hz 候选相对前/后空窗分别 +1.253 / +15.393，背景漂移 −14.140，暂不锁定。 |
 
-本机原始证据位于 `.local-evidence/spikes/`。S1 的 `s1-passive/summary.json` 和 `keychain-acl.log` 对应两次干净重编；S3 的 `s3-auto.json` 记录内屏与独立负坐标夹具；S4 的 `s4-run1/comparison.md`、`s4-repeat/diagnostic.md`、`s4-limited/diagnostic.md` 分别保留首测、默认复测及 15 Hz 候选实测。
+本机原始证据位于 `.local-evidence/spikes/`。S1 的 `s1-passive/summary.json` 和 `keychain-acl.log` 对应两次干净重编；人工轮证据在 `manual-Yo8ntA/s1/summary.json` 和 `manual-Yo8ntA/parallel-counter/result.json`。S3 的 `s3-auto.json` 记录内屏与独立负坐标夹具；S4 的 `s4-run1/comparison.md`、`s4-repeat/diagnostic.md`、`s4-limited/diagnostic.md` 分别保留首测、默认复测及 15 Hz 候选实测。
 
 S4 首测空窗 / Canvas / CALayer 的物理内存分别为 12.666 / 97.436 / 12.977 MB，App 平均 CPU 分别为 0.037% / 5.600% / 0.000%。按空窗 +25 MB 计算的本机候选内存上限为 37.666 MB。保留 App CPU 0.8% 与 WindowServer 增量 1.5 个百分点的原目标。默认呼吸在两次物理采样中超线。试验结论属于架构可行性数据，计入探针结果，未触发代码修复熔断。
 
