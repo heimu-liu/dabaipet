@@ -44,13 +44,17 @@ PY
     mkdir "$3"
     ws=$(pgrep -x WindowServer | head -1)
     [[ -n "$ws" ]]
-    /usr/bin/footprint -p "$2" > "$3/footprint.txt"
-    top -l 31 -s 1 -pid "$2" -pid "$ws" -stats pid,cpu > "$3/top.txt"
+    LC_ALL=C /usr/bin/footprint -p "$2" -f bytes > "$3/footprint.txt"
+    LC_ALL=C /usr/bin/top -l 31 -s 1 -pid "$2" -pid "$ws" -stats pid,cpu > "$3/top.txt"
     python3 - "$2" "$ws" "$3" "${4:-}" <<'PY'
-import json, math, pathlib, statistics, sys
+import json, math, pathlib, re, statistics, sys
 app, ws, folder, baseline = sys.argv[1:]
 root = pathlib.Path(folder)
-summary = {}
+raw_memory = (root / "footprint.txt").read_text()
+matches = re.findall(r"^\s*phys_footprint:\s+([\d,]+) B\s*$", raw_memory, re.MULTILINE)
+if len(matches) != 1:
+    sys.exit("footprint: expected one phys_footprint in bytes")
+summary = {"physFootprintBytes": int(matches[0].replace(",", ""))}
 for name, pid in (("app", app), ("windowServer", ws)):
     samples = []
     for line in (root / "top.txt").read_text().splitlines():
@@ -60,7 +64,8 @@ for name, pid in (("app", app), ("windowServer", ws)):
     if len(samples) != 31:
         sys.exit(f"{name}: expected 31 samples, got {len(samples)}")
     samples = samples[1:]
-    summary[name] = dict(mean=statistics.mean(samples), p95=sorted(samples)[math.ceil(.95*len(samples))-1])
+    summary[name] = dict(pid=int(pid), samples=samples, mean=statistics.mean(samples),
+                         p95=sorted(samples)[math.ceil(.95*len(samples))-1])
 if baseline:
     previous = json.loads((pathlib.Path(baseline) / "cpu.json").read_text())
     summary["windowServerMeanDelta"] = summary["windowServer"]["mean"] - previous["windowServer"]["mean"]

@@ -3,7 +3,7 @@
 > 由 **`ORCH`（`codex 6.2 astra xhigh`）** 实时维护。每完成一次派发、门禁校验、升级切换或人工签收均须更新本表。
 
 - **Current Phase**：Iteration 0.5（真机探针）
-- **Next Action**：Iteration 0 已由用户签收，S1–S4 已派发 DEV-H。
+- **Next Action**：Iteration 0 已由用户签收。S1 默认钥匙串方案跨重建实测失败；S2 待手测，S3 已测内屏，S4 默认呼吸超线，15 Hz 夹测因桌面负载漂移待定。
 - **Escalation Policy**：`IMPL` 失败累计：尝试 #1（主责）→ #2（`codex 6.2 astra high`）→ #3（`Agy · Neon`）→ #4（`Agy · Claude Opus 5.5`）→ `BLOCKED`（人工审核）；`ENV`/`SPEC` 失败不计数
 - **Test Count Baseline**：`8`（7 项冻结契约测试 + 1 项工程测试）
 
@@ -30,10 +30,16 @@
 ### Iteration 0.5：MVP 前置可行性探针（真机二元签收）
 | Spike | 名称 | 主责角色 | 状态 | IMPL 失败次数 | 真机签收 | 备注 / 基线数值 |
 | :--- | :--- | :---: | :---: | :---: | :---: | :--- |
-| S1 | 自签名跨重建 TCC/Keychain + `counterForEventType` 权限 | `DEV-H` (`codex 6.2 astra high`) | `TODO` | 0 | `PENDING` | - |
-| S2 | 透明 `ignoresMouseEvents` 穿透 + 拖拽 + `ChatPanel` 中文 IME | `DEV-H` (`codex 6.2 astra high`) | `TODO` | 0 | `PENDING` | - |
-| S3 | 宽窗画布内滚动（单屏/多屏负坐标/`visibleFrame`） | `DEV-H` (`codex 6.2 astra high`) | `TODO` | 0 | `PENDING` | - |
-| S4 | 性能基线标定（空壳 / Canvas 30FPS / CALayer 呼吸） | `DEV-H` (`codex 6.2 astra high`) | `TODO` | 0 | `PENDING` | 产出红线标定值 |
+| S1 | 自签名跨重建 TCC/Keychain + `counterForEventType` 权限 | `DEV-H` (`codex 6.2 astra high`) | `FAIL` | 0 | 待补测 TCC/键盘 | A/B 签名 DR 相同、CDHash 不同。A 写入成功，B 禁交互读取返回 -25293；securityd 确认 CDHash 分区不匹配。已恢复 A 并删除条目。麦克风授权与真实按键待人工。 |
+| S2 | 透明 `ignoresMouseEvents` 穿透 + 拖拽 + `ChatPanel` 中文 IME | `DEV-H` (`codex 6.2 astra high`) | `IN_PROGRESS` | 0 | `PENDING` | 签名包已包含穿透、拖动和两种焦点策略的中文拼音实测入口。 |
+| S3 | 宽窗画布内滚动（单屏/多屏负坐标/`visibleFrame`） | `DEV-H` (`codex 6.2 astra high`) | `IN_PROGRESS` | 0 | `PENDING` | 内屏 257 次采样，2.208 秒，152 → 332 → 152 pt，采样包络全部可见。负坐标夹具四角通过，实机仅连接内屏。 |
+| S4 | 性能基线标定（空壳 / Canvas 30FPS / CALayer 呼吸） | `DEV-H` (`codex 6.2 astra high`) | `IN_PROGRESS` | 0 | `PENDING` | 默认呼吸对 WindowServer 增量 +10.84 个百分点；前后两次空窗夹测 +10.47，均超过 1.5。15 Hz 候选相对前/后空窗分别 +1.253 / +15.393，背景漂移 −14.140，暂不锁定。 |
+
+本机原始证据位于 `.local-evidence/spikes/`。S1 的 `s1-passive/summary.json` 和 `keychain-acl.log` 对应两次干净重编；S3 的 `s3-auto.json` 记录内屏与独立负坐标夹具；S4 的 `s4-run1/comparison.md`、`s4-repeat/diagnostic.md`、`s4-limited/diagnostic.md` 分别保留首测、默认复测及 15 Hz 候选实测。
+
+S4 首测空窗 / Canvas / CALayer 的物理内存分别为 12.666 / 97.436 / 12.977 MB，App 平均 CPU 分别为 0.037% / 5.600% / 0.000%。按空窗 +25 MB 计算的本机候选内存上限为 37.666 MB。保留 App CPU 0.8% 与 WindowServer 增量 1.5 个百分点的原目标。默认呼吸在两次物理采样中超线。试验结论属于架构可行性数据，计入探针结果，未触发代码修复熔断。
+
+S1 当前签名身份下的默认钥匙串分区无法满足跨编译免交互读取要求。BYOK 持久化设计须重新验证，然后再签收 S1。签名私钥操作与应用测试条目的读取分别记录。[人工操作与复测步骤](SPIKE_ACCEPTANCE.md)
 
 ### Iteration 1：MVP 大白桌宠本体
 | Ticket | 名称 | 主责角色 | 状态 | IMPL 失败次数 | 门禁结果 | 备注 / 证据 |

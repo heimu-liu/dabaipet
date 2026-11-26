@@ -18,6 +18,7 @@
 | [docs/UI_UX_SPEC.md](docs/UI_UX_SPEC.md) | 代码化设计 Token、大白矢量几何、CALayer/宽窗翻滚规范、ChatPanel/IME 与离屏截图走查 | `UIUX` + 开发模型 |
 | [docs/LOOP_ORCHESTRATION_AND_ACCEPTANCE.md](docs/LOOP_ORCHESTRATION_AND_ACCEPTANCE.md) | 角色路由、四级异构升级熔断规则、Iteration 0–4 全量 Task DAG、三段式验收门禁与启动 Prompt | `ORCH` + 全体模型 |
 | [docs/LOOP_STATUS.md](docs/LOOP_STATUS.md) | 循环开发实时状态看板（由 `ORCH` 持续维护） | `ORCH` + 人类审核者 |
+| [docs/SPIKE_ACCEPTANCE.md](docs/SPIKE_ACCEPTANCE.md) | S1–S4 真机探针的操作步骤、预期结果和证据位置 | 测试者 + 人类签收者 |
 
 ---
 
