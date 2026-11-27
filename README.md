@@ -1,12 +1,14 @@
-# DabaiPet（大白 macOS 桌面宠物）— 多模型循环开发工程规范（v2 定稿）
+# DabaiPet · 大白 macOS 桌面宠物
 
 本项目是一个面向 **本机自用（macOS 26+ Apple Silicon）** 的原生 Swift（AppKit + SwiftUI）极轻量级大白桌面宠物：
 - **纯代码矢量绘制**（零外部美术依赖，Retina 无损高清）+ **CALayer 呼吸与事件驱动重绘**；
 - **硬件传感器按需唤醒**（平时 0 麦克风/摄像头活跃实例）；
-- **免配置本地快反 + 标准 BYOK 大模型 API**（OpenAI 兼容 / Anthropic / 本地 Ollama，Key 存 macOS Keychain，零订阅封号风险）；
+- **免配置本地回复 + 自带密钥的大模型 API**（OpenAI 兼容服务、Anthropic 或本地 Ollama，密钥保存在 macOS 钥匙串）；
 - **三段式自动化门禁 + 按阶段真机探针（Spike）+ 四级异构熔断编排**。
 
-> 本规范已整合 **Claude Opus 5.5 (High)** 独立架构评审的 29 项发现及用户最终拍板决策，所有代码实现与循环验收以本版文档为唯一事实源。
+点一下大白肚子上的麦克风即可连续用普通话聊天。等它回答完直接接着说；轮到你说话时单独说「拜拜」，或者随时点肚子上的停止键，即可结束。待机时麦克风关闭。语音识别在 Mac 上完成，默认优先使用系统普通话声线婷婷播报。选择云端 AI 后，大白会将本轮文字和最近的对话上下文发给你配置的服务。
+
+初次使用可以直接体验内置本地回复。要使用自己的模型，打开菜单栏「大白 → 设置」，填写服务地址与模型、保存密钥并测试连接。摄像头猜拳已暂缓。
 
 ---
 
@@ -46,7 +48,7 @@
 - **性能工具**：`/usr/bin/footprint`、`top`、CoreAudio / CoreMediaIO 系统查询
 
 ### 人工一次性前置准备（约 30 秒，Iteration 0 前完成一次即可）
-为避免每次重建 `ad-hoc` 签名变化导致 macOS TCC 权限与 Keychain 反复失效，请在「钥匙串访问」创建一张本机自签名代码签名证书：
+为让 macOS 在重建后识别同一主程序，请在「钥匙串访问」创建本机代码签名证书。钥匙串跨版本读取另依赖固定签名的私有服务，见 [S1 实测与适用范围](docs/LOOP_STATUS.md)。
 1. 打开 **钥匙串访问（Keychain Access）** → 顶部菜单 **证书助理 → 创建证书…**
 2. 名称填写：**`DabaiPet Local Dev`**
 3. 身份类型：**自签名根证书**；证书类型：**代码签名（Code Signing）**
@@ -59,7 +61,19 @@
 ```bash
 swift build                                 # 编译全部 target
 ./scripts/test.sh                           # 调用 swift test，补齐本机 CLT 的框架与运行库搜索路径
+zsh Spikes/SettingsRegression/run.zsh       # 在已解锁的 Mac 桌面验证设置窗口、静音菜单和明暗切换，使用测试凭据
 ./scripts/build_app.sh                      # 编译并自签名生成 dist/DabaiPet.app
 ./scripts/verify_gate.sh                    # 硬门禁脚本（退出码 0 才算过关）
 open dist/DabaiPet.app                      # 真机运行（严禁直接执行裸二进制做权限测试）
+```
+
+项目的正式验收门禁校验原开发机的证书指纹。在其他 Mac 上，可用自己的签名身份运行 `DABAI_CODESIGN_IDENTITY="证书名称" ./scripts/build_app.sh`，再打开生成的应用。普通编译和单元测试均可独立执行。
+
+要复验签名包的初始状态和绘制结果，可运行以下命令。自检会核对桌宠是否待机、麦克风和摄像头会话是否为空。快照报告中的 `differentPixels` 表示与仓库基线相差的像素数。
+
+```bash
+out=$(mktemp -d)
+./scripts/evidence.sh --smoke-test "$out/smoke.json"
+./scripts/evidence.sh --snapshot "$out/contact-sheet.png" docs/visual-baselines/T1.3-contact-sheet.png
+cat "$out/contact-sheet.png.diff.json"
 ```

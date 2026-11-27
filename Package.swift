@@ -13,7 +13,8 @@ let package = Package(
             swiftSettings: [.treatAllWarnings(as: .error)]
         ),
         .target(name: "DabaiPetUI", dependencies: ["DabaiPetCore"]),
-        .executableTarget(name: "DabaiPetApp", dependencies: ["DabaiPetCore", "DabaiPetUI"]),
+        .target(name: "CredentialIPC"),
+        .executableTarget(name: "DabaiPetApp", dependencies: ["DabaiPetCore", "DabaiPetUI", "CredentialIPC"]),
         .testTarget(name: "DabaiPetCoreTests", dependencies: ["DabaiPetCore"], path: "Tests"),
     ],
     swiftLanguageModes: [.v6]

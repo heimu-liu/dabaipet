@@ -4,6 +4,7 @@ cd "$(dirname "$0")/.."
 python3 scripts/gate_scan.py "${1:-}"
 if [[ ${1:-} == --self-test ]]; then exit 0; fi
 [[ $# == 0 ]] || { echo "usage: $0 [--self-test]" >&2; exit 64; }
+python3 -B -m unittest discover -s scripts/tests
 
 # Check working tree (including new files), index and any ticket commits against
 # the ORCH handoff. The initial freeze is pinned by the reviewed SHA manifest.
@@ -43,7 +44,7 @@ fi
 (( count >= baseline && count > 0 )) || { echo "test count $count below baseline $baseline" >&2; exit 1; }
 
 ./scripts/build_app.sh
-app=dist/DabaiPet.app
+app="${DABAI_DIST_DIR:-$PWD/dist}/DabaiPet.app"
 plist="$app/Contents/Info.plist"
 codesign --verify --deep --strict --verbose=2 "$app"
 dr=$(codesign -d -r- "$app" 2>&1)
@@ -51,6 +52,9 @@ echo "$dr"
 # A self-signed cert's synthesized DR can name the root by SHA-1, not by CN.
 expected_cert=8FB31CF5305E65E32FDE12A5A1D0BB62A73888E5
 codesign --verify -R="identifier \"com.dabaipet.app\" and certificate leaf = H\"$expected_cert\"" "$app"
+credential_id="com.dabaipet.app.credentials"
+codesign --verify --strict -R="identifier \"$credential_id\" and certificate leaf = H\"$expected_cert\"" \
+    "$app/Contents/XPCServices/$credential_id.xpc"
 if ! grep -Eiq "designated => .*certificate (root|leaf|[0-9]+) = H\"$expected_cert\"|designated => .*certificate leaf\[subject.CN\] = \"DabaiPet Local Dev\"|designated => .*anchor = H\"$expected_cert\"" <<< "$dr"; then
     echo 'designated requirement is missing the local signing identity' >&2; exit 1
 fi

@@ -11,7 +11,7 @@ fi
 
 bundle_id=com.dabaipet.app
 plist=Resources/Info.plist
-dist_dir="$PWD/dist"
+dist_dir="${DABAI_DIST_DIR:-$PWD/dist}"
 output_app="$dist_dir/DabaiPet.app"
 publish_lock="$dist_dir/.DabaiPet.publish.lock"
 
@@ -95,6 +95,29 @@ trap 'exit 143' TERM
 mkdir -p -- "$staged_app/Contents/MacOS"
 install -m 0755 "$bin_dir/DabaiPet" "$staged_app/Contents/MacOS/DabaiPet"
 install -m 0644 "$plist" "$staged_app/Contents/Info.plist"
+
+plutil -insert DabaiCredentialSigner -string "$signer_hash" "$staged_app/Contents/Info.plist"
+# Keep versioned signed services beside the published app across SwiftPM cleans.
+# Both the old and new artifacts survive a service upgrade for recovery.
+credential_id=com.dabaipet.app.credentials
+credential_req="identifier \"$credential_id\" and certificate leaf = H\"$signer_hash\""
+credential_version=$(cat Services/DabaiKeychain/main.m scripts/build_keychain_service.sh | shasum -a 256 | cut -d' ' -f1)
+credential_cache="$dist_dir/.credential-services/$signer_hash/$(uname -m)/$credential_version"
+embedded="$staged_app/Contents/XPCServices"
+mkdir -p "$embedded" "$credential_cache"
+if [[ ! -d "$credential_cache/$credential_id.xpc" ]]; then
+    scripts/build_keychain_service.sh "$signer_hash" "$staging_dir/service"
+    python3 - "$staging_dir/service/$credential_id.xpc" "$credential_cache/$credential_id.xpc" <<'PYTHON'
+import errno, os, sys
+try:
+    os.rename(*sys.argv[1:])
+except OSError as error:
+    if error.errno not in (errno.ENOTEMPTY, errno.EEXIST):
+        raise
+PYTHON
+fi
+codesign --verify --strict "-R=$credential_req" "$credential_cache/$credential_id.xpc"
+ditto "$credential_cache/$credential_id.xpc" "$embedded/$credential_id.xpc"
 
 # Bind the identifier to the same leaf certificate used to sign this bundle.
 requirement="designated => identifier \"$bundle_id\" and certificate leaf = H\"$signer_hash\""

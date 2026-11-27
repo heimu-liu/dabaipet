@@ -90,12 +90,14 @@
 | :--- | :--- | :---: | :---: | :--- |
 | **S1** | 自签名证书跨编译稳定性 + TCC/Keychain + `CGEventSource.counterForEventType` 权限验证 | `DEV-H` | `T0.2a` + 人工已建证书 | 连续 2 次重编重签后 `open dist/DabaiPet.app`：Keychain 读写不弹密码、TCC 不掉授权；确认 `counterForEventType(.keyDown)` 是否免辅助功能权限 |
 | **S2** | 透明浮窗 `ignoresMouseEvents` 动态穿透 + AppKit 拖拽/单击 + 独立 `ChatPanel` 中文拼音 IME | `DEV-H` | `T0.2a` | 透明区可正常点中背后窗口；拖动不抖动；拼音输入“nihao”组字按回车仅上屏不发送，再回车才发送（验证不激活 App 是否可行，不行则定案为激活） |
-| **S3** | 宽窗画布内滚动在单屏/多屏（含负坐标与刘海 `visibleFrame`）下的实测 | `DEV-H` | `T0.2a` | 滚动扩宽/收缩无闪烁、无裁切、不跨屏 |
+| **S3** | 本轮实测内置屏宽窗画布内滚动（含刘海 `visibleFrame`），外接显示器场景延期 | `DEV-H` | `T0.2a` | 内置屏上窗口扩宽、滚动、收缩时无闪烁、无裁切，全程位于可见区域内 |
 | **S4** | 真实性能基线标定（空壳 SwiftUI / Canvas 30FPS / `CALayer` 呼吸三组对比） | `DEV-H` | `T0.2a` | 产出 `footprint` + 30 帧 `top` + WindowServer 增量对比表，正式锁定 Iteration 1 性能红线数值 |
 
 ---
 
 ### Iteration 1：MVP 大白桌宠本体（可独立运行把玩）
+
+本轮以 Mac 内置屏验收。用户暂缓 WindowServer CPU 增量和外接显示器场景，S4 已完成的内存与 App CPU 基线用于本轮派单和验收。负坐标纯数学夹具可在内置屏环境执行。
 
 | Ticket | 任务名称 | 主责 | 依赖 | 核心交付物 |
 | :--- | :--- | :---: | :---: | :--- |
@@ -104,7 +106,7 @@
 | **T1.3** | 代码化设计资产 + `CALayer` 大白矢量视图 + `--snapshot` 离屏联系表 | `UIUX` → `DEV-H` | `T0.3`, `S4` | `DesignTokens.swift`、`BaymaxGeometry.swift`、`BaymaxLayerView.swift`、`--snapshot` 命令 |
 | **T1.4a** | 透明置顶 `PetFloatingPanel` + `ignoresMouseEvents` 动态穿透 + Spaces | `DEV-H` | `T0.3`, `S2` | `PetFloatingPanel.swift`（可用占位图形先验证，无需强等 T1.3） |
 | **T1.4b** | AppKit `PetInputOverlayView`（拖拽速度倾斜 + `<3pt/250ms` 戳肚皮 + 右键菜单） | `DEV-H` | `T1.4a` | `PetInputOverlayView.swift` |
-| **T1.4c** | 宽窗画布内滚动联动 + 多屏 `visibleFrame` 钳制 + 显示器热插拔复位 | `DEV-H` | `T1.2`, `T1.4a` | 滚动控制器集成与屏幕变化监听 |
+| **T1.4c** | 宽窗画布内滚动联动与当前屏 `visibleFrame` 钳制 | `DEV-H` | `T1.2`, `T1.4a` | 内置屏滚动控制器集成。外接显示器热插拔复位延期 |
 | **T1.4d** | 位置/偏好持久化 + 减弱动态效果 + 遮挡/休眠暂停动画 | `DEV-L` | `T1.4a` | `PreferencesStore.swift` + 系统状态监听 |
 | **T1.5** | **App 协调脊柱 `PetController` + `--smoke-test` + 干净退出** | `DEV-H` | `T1.1`, `T1.3`, `T1.4b`, `T1.4c`, `T1.4d` | `PetController.swift`（串联状态机/动效/窗口/副作用） |
 | **T1.6** | 顶部菜单栏图标（纯代码 template `NSImage`）+ 单实例保护 | `DEV-L` | `T1.5` | `AppDelegate.swift`（显隐、归位右下角、防双开、退出） |
@@ -114,7 +116,7 @@
 - `AC-1.2（零裁切数学证明）`：单测遍历 `t ∈ [0, 2.2s]`（步长 `1/120`）与 `0.8x/1.0x/1.25x` 缩放，断言大白变换后包络 100% 落于窗口内、滚动路径 100% 落于 `visibleFrame` 内（含负坐标副屏夹具）。
 - `AC-1.3（无头自检）`：`--smoke-test` 输出 JSON 断言：`activationPolicy == .accessory`、`isOpaque == false`、`hasShadow == false`、初始 `idle`、音视频会话均 `nil`。
 - `AC-1.4（UIUX 视觉签收）`：`--snapshot` 生成黑白背景联系表 PNG，经 `UIUX` 签收并固化像素差基线。
-- `AC-1.5（性能与干净退出）`：右键「关闭大白」1 秒内 `pgrep -x DabaiPet` 无残留；`evidence.sh` 实测待机 `phys_footprint` 与 CPU（含 WindowServer）满足 S4 标定红线。
+- `AC-1.5（性能与干净退出）`：右键「关闭大白」1 秒内 `pgrep -x DabaiPet` 无残留。成品待机 `phys_footprint` 须在 S4 空壳基线 +25 MB 以内，App CPU 均值须 ≤0.8%。WindowServer 增量延期。
 - `AC-1.6（人工 30 秒真机签收）`：`open dist/DabaiPet.app` 后实测：透明区点中下层窗口、拖拽丝滑不跑出屏幕、轻点戳肚皮有果冻回弹、右键「滚动一下」在桌面滚出回稳不裁切、右键「关闭大白」彻底退出。
 
 ---
@@ -153,16 +155,24 @@
 | **T3.3b** | `SpeechInputService`（`nonisolated @Sendable` tap + 2.5s 无变化/30s 硬停 + 设备变更处理） | `DEV-H` | `T3.3a` | 按需 STT，离开必停 `AVAudioEngine` |
 | **T3.3c** | `SpeechOutputService`（`AVSpeechSynthesizer` 强引用 + 静音 + 与 STT 互斥） | `DEV-L` | `T1.5` | 中文温和播报与一键静音 |
 | **T3.4** | 语音/文字 ↔ BYOK API ↔ 情绪表情 ↔ TTS 完整联调 | `DEV-H` | `T3.2`, `T3.3b`, `T3.3c`, `T2.4` | 断网/401/429/超时温柔兜底，绝不卡死 `thinking` |
+| **T3.5a** | 桌宠肚子麦克风控件 | `DEV-L` | `T3.4` | 可发现的单击入口与停止状态，验证三档缩放、拖拽、戳肚皮与穿透 |
+| **T3.5b** | 从桌宠直接发起单轮语音对话 | `DEV-H` | `T3.4` | 与 T3.5a 约定控件接口，并行实现，文字窗关闭时仍可完整提问、回复、播报与重试 |
+| **T3.5c** | 桌宠语音入口视觉与交互复核 | `UIUX` | `T3.5a`, `T3.5b` | 独立复核真实窗口、点击去向及一轮对话，随后由 ORCH 打包组织 G3 人工签收 |
+| **T3.6a** | 结束对话按钮与本地告别语识别 | `DEV-L` | `T3.5c` | 会话各阶段按钮可终止，独立「拜拜」与含该词的普通语句可区分 |
+| **T3.6b** | 一次点按的多轮语音对话 | `DEV-H` | `T3.5c` | 与 T3.6a 并行实现，复用已有端侧识别、回复与播报，长停顿可接续，结束后迟到回调不能重开 |
+| **T3.6c** | 持续对话实窗与正常路径独立复核 | `UIUX` | `T3.6a`, `T3.6b` | 复核两种结束方式、连续问答、长静默与收音反馈，随后由 ORCH 组织正式包签收 |
 
 **Iteration 3 验收标准**：
 - `AC-3.1（双协议单测）`：Mock 覆盖 OpenAI / DeepSeek（忽略 `reasoning_content`）/ Ollama / Anthropic（顶层 `system` + 成对截断 + `max_tokens`）及 401/429/超时/畸形 JSON。
 - `AC-3.2（金丝雀零泄漏）`：运行 `evidence.sh` 金丝雀 Key 扫描，偏好文件、缓存、`/tmp` 及 `log show` 全部 0 命中；重启 App 仍可免密码读取 Keychain。
 - `AC-3.3（按需开麦硬证据）`：待机时 CoreAudio 查询麦克风未运行；录音停止后 1 秒内 CoreAudio 查询返回未运行且系统橙灯熄灭；开麦瞬间 TTS 立即停止。
-- `AC-3.4（人工签收）`：填写真实 API Key（或本地 Ollama）完成一轮语音提问→大白回复+情绪表情+语音播报；断网测试确认温柔中文提示不卡死。
+- `AC-3.4（人工签收）`：使用已配置的真实服务或本地 Ollama，文字窗关闭，只点一次肚子。说「我今天有点累」，听完回答，直接接「那我可以先做什么？」并听到结合前文的第二次回答。轮到用户说话时说「拜拜」，确认回到待机、说下一句也不会自行启动。另一次从肚子开启并在大白回答时点击终止，播报立即停且不会转入倾听；断网可恢复。沿用 AC-3.3 待机与停麦一秒指标。对连续会话按实际录音开始/释放时段记录，区分轮间重新接听与最终结束。
 
 ---
 
 ### Iteration 4（二期扩展）：摄像头手势石头剪刀布
+
+2026-11-27 用户决定暂缓本节全部任务。下面是恢复开发时的方案和验收标准。
 
 | Ticket | 任务名称 | 主责 | 依赖 | 核心交付物 |
 | :--- | :--- | :---: | :---: | :--- |
@@ -179,6 +189,10 @@
 ---
 
 ## 4. 给 `ORCH`（`codex 6.2 astra xhigh`）的启动调度 Prompt
+
+ORCH 在当前协调窗口派单、审查并更新看板。常规执行固定复用三个 Orca 窗口，每种模型一个：DEV-L 用 6.2 Sol ultra，DEV-H 用 6.2 Astra high，UIUX 与 RESCUE-1 共用 Neon。首次绑定时核对模型并在看板登记终端句柄。派发就绪 Ticket 时显式指定该句柄；同一模型的后续任务、返工和复测依次排队。窗口忙时等待，派送失败时先检查原窗口并原位恢复。仅在触发既定 RESCUE-2 条件时使用 Opus。
+
+任务单写明角色、模型、允许编辑路径与逐条 AC。执行窗口可直接读取、编辑、编译、测试与采样。删除已有文件、覆盖用户数据、修改系统或安全设置前，由 ORCH 告知用户并等待确认。macOS 本人授权和逐轮人工签收沿用原流程。
 
 直接复制下方 Prompt 发给 **`codex 6.2 astra xhigh`** 即可启动完整循环开发：
 
@@ -203,6 +217,7 @@
      - 第 3 次失败 → 尝试 #4：切换 **`Agy · Claude Opus 5.5`** 修复；
      - 第 4 次仍失败 → 立即标记 `BLOCKED` 输出《阻塞诊断报告》，等待人工审核。
 4. 先推进 **Iteration 0（T0.1 → T0.2a → T0.2b → T0.3）**，确认 `DabaiPet Local Dev` 自签名证书就绪后推进 **Iteration 0.5（Spike S1–S4）** 并请人类用户做 10 分钟真机二元签收；签收通过后再进入 **Iteration 1（MVP 大白桌宠）**。
+5. 从看板取得主责模型的固定窗口。用 Orca orchestration 将任务派到该窗口并保留窗口。遇到同模型并发需求时排队，复测沿用原窗口。
 
 现在请检查 `docs/LOOP_STATUS.md`，从 `T0.1` 开始第一轮派发。
 ```

@@ -5,7 +5,7 @@ usage() {
     echo "usage: $0 --smoke-test OUTPUT.json | --snapshot OUTPUT.png [BASELINE.png] | --resources PID NEW_DIRECTORY [BASELINE_DIRECTORY] | --hardware | --canary NEW_DIRECTORY" >&2
     exit 64
 }
-app="$PWD/dist/DabaiPet.app"
+app="${DABAI_EVIDENCE_APP:-$PWD/dist/DabaiPet.app}"
 case ${1:-} in
 --smoke-test|--snapshot)
     [[ $# == 2 || ( $1 == --snapshot && $# == 3 ) ]] || usage
